@@ -1,11 +1,17 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { env } from '@/lib/env';
-import { systemPrompt } from './system-prompt';
+import { bottomProducts } from '@/lib/tools/bottom-products';
+import { topProducts } from '@/lib/tools/top-products';
+import type { RankedProductsArgs } from '@/lib/tools/ranked-products';
 import { TOOL_DEFS } from './schema';
-import { topProducts, type TopProductsArgs } from '@/lib/tools/top-products';
+import { systemPrompt } from './system-prompt';
 
 export type ToolSelection =
-  | { kind: 'tool'; toolName: 'top_products'; args: TopProductsArgs }
+  | {
+      kind: 'tool';
+      toolName: 'top_products' | 'bottom_products';
+      args: RankedProductsArgs;
+    }
   | { kind: 'refuse'; reason: 'out_of_scope' | 'unavailable_reason' };
 
 const TIMEOUT_MS = 20_000;
@@ -69,6 +75,19 @@ export async function selectTool(
       console.log('[llm] selected tool: top_products', parsed.data);
     }
     return { kind: 'tool', toolName: 'top_products', args: parsed.data };
+  }
+
+  if (toolUse.name === 'bottom_products') {
+    const parsed = bottomProducts.argSchema.safeParse(toolUse.input);
+    if (!parsed.success) {
+      return refuseAsOutOfScope(
+        `bottom_products arg validation failed: ${parsed.error.message}`,
+      );
+    }
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[llm] selected tool: bottom_products', parsed.data);
+    }
+    return { kind: 'tool', toolName: 'bottom_products', args: parsed.data };
   }
 
   return refuseAsOutOfScope(`unknown tool name: ${toolUse.name}`);

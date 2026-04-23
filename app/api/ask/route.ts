@@ -1,11 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { getSession } from '@/lib/session';
+import { chartForResult } from '@/lib/charts/map';
 import { selectTool } from '@/lib/llm/client';
-import { topProducts } from '@/lib/tools/top-products';
-import { chartForTopProducts } from '@/lib/charts/map';
-import { textForTopProducts } from '@/lib/text/answer';
 import { resolveReferenceDate } from '@/lib/reference-date';
-import type { AskResponse, AskErrorResponse } from '@/lib/types';
+import { getSession } from '@/lib/session';
+import { answerForResult } from '@/lib/text/answer';
+import { runTool, type ToolResult } from '@/lib/tools';
+import type { AskErrorResponse, AskResponse } from '@/lib/types';
 
 // Canned text per functional-spec §7.7. The LLM never authors these strings.
 const OUT_OF_SCOPE_TEXT =
@@ -63,9 +63,6 @@ export async function POST(
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[api/ask] LLM call failed:', msg);
-    // Config-level failures (missing key, bad auth) deserve a clear 500 so
-    // the developer sees them immediately. Transient failures fall through
-    // to a graceful out_of_scope response.
     const isConfigError =
       msg.includes('ANTHROPIC_API_KEY') ||
       msg.toLowerCase().includes('authentication') ||
@@ -98,35 +95,30 @@ export async function POST(
     });
   }
 
-  // --- 6. Execute the selected tool, server-side vendor scope -------------
-  if (selection.toolName === 'top_products') {
-    let rows;
-    try {
-      rows = await topProducts.run(selection.args, session.vendorId);
-    } catch (err) {
-      console.error('[api/ask] top_products query failed:', err);
-      return errorJson({ error: 'tool_failed' }, 500);
-    }
+  // --- 6. Execute the selected tool via the generic dispatcher ------------
+  let result: ToolResult;
+  try {
+    result = await runTool(
+      { toolName: selection.toolName, args: selection.args },
+      session.vendorId,
+    );
+  } catch (err) {
+    console.error('[api/ask] tool execution failed:', err);
+    return errorJson({ error: 'tool_failed' }, 500);
+  }
 
-    if (rows.length === 0) {
-      return askJson({
-        status: 'empty',
-        text: EMPTY_TEXT,
-        chart: chartForTopProducts(rows, selection.args),
-      });
-    }
-
+  // --- 7. Render response via deterministic chart + text dispatchers ------
+  if (result.rows.length === 0) {
     return askJson({
-      status: 'ok',
-      text: textForTopProducts(rows, selection.args),
-      chart: chartForTopProducts(rows, selection.args),
+      status: 'empty',
+      text: EMPTY_TEXT,
+      chart: chartForResult(result),
     });
   }
 
-  // --- 7. Exhaustiveness fallback -----------------------------------------
   return askJson({
-    status: 'out_of_scope',
-    text: OUT_OF_SCOPE_TEXT,
-    chart: null,
+    status: 'ok',
+    text: answerForResult(result),
+    chart: chartForResult(result),
   });
 }
