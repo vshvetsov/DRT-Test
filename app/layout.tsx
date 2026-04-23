@@ -21,9 +21,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={inter.variable}>
-      <body className="font-sans antialiased">
+      <body className="font-sans antialiased min-h-screen flex flex-col">
         <PrototypeBanner />
-        {children}
+        <div className="flex-1 flex flex-col min-h-0">{children}</div>
       </body>
     </html>
   );

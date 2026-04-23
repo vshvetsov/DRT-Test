@@ -1,14 +1,54 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import { ChatInput } from '@/components/ChatInput';
+import { MessageList, type ChatMessage } from '@/components/MessageList';
+import { postQuestion } from '@/lib/api';
 import { useSession } from '@/lib/useSession';
 
 export default function ChatPage() {
+  const router = useRouter();
   const { status, displayName, logout } = useSession();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = useCallback(
+    async (question: string) => {
+      const userId = `u-${Date.now()}`;
+      const loadingId = `l-${Date.now()}`;
+      setMessages((prev) => [
+        ...prev,
+        { id: userId, kind: 'user', text: question },
+        { id: loadingId, kind: 'loading' },
+      ]);
+      setSubmitting(true);
+
+      const result = await postQuestion(question);
+      setSubmitting(false);
+
+      if (result.kind === 'unauthenticated') {
+        router.replace('/');
+        return;
+      }
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === loadingId
+            ? result.kind === 'ok'
+              ? { id: loadingId, kind: 'assistant', response: result.response }
+              : { id: loadingId, kind: 'error', text: result.message }
+            : m,
+        ),
+      );
+    },
+    [router],
+  );
 
   if (status === 'loading') {
     return (
-      <main className="min-h-[calc(100vh-2.5rem)] flex items-center justify-center">
+      <main className="flex-1 flex items-center justify-center">
         <p className="text-brand-textMuted text-sm">Loading session…</p>
       </main>
     );
@@ -20,7 +60,7 @@ export default function ChatPage() {
   }
 
   return (
-    <main className="min-h-[calc(100vh-2.5rem)] flex flex-col">
+    <main className="flex-1 flex flex-col min-h-0">
       <header className="flex items-center justify-between border-b border-brand-hairline px-6 py-4 bg-brand-bgSurface">
         <div>
           <p className="text-xs font-mono tracking-widest text-brand-textMuted uppercase">
@@ -32,14 +72,8 @@ export default function ChatPage() {
           Switch vendor
         </Button>
       </header>
-      <section className="flex-1 p-6">
-        <p className="text-brand-textMuted text-sm">
-          Chat is wired up in the next slice. For now, this page confirms your
-          active session:{' '}
-          <span className="font-mono text-brand-textPrimary">{displayName}</span>
-          .
-        </p>
-      </section>
+      <MessageList messages={messages} />
+      <ChatInput disabled={submitting} onSubmit={handleSubmit} />
     </main>
   );
 }

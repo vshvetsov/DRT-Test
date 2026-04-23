@@ -2,7 +2,7 @@ import { VendorSelector } from '@/components/VendorSelector';
 
 export default function LandingPage() {
   return (
-    <main className="min-h-[calc(100vh-2.5rem)] flex items-center justify-center p-8">
+    <main className="flex-1 flex items-center justify-center p-8">
       <div className="w-full max-w-xl space-y-8 text-center">
         <div className="space-y-2">
           <p className="text-xs font-mono tracking-widest text-brand-textMuted uppercase">
