@@ -9,14 +9,19 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:verify": "tsx scripts/verify.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.90.0",
     "iron-session": "^8.0.4",
     "next": "^14.2.15",
     "pg": "^8.13.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^20.16.10",
@@ -26,6 +31,7 @@
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.13",
+    "tsx": "^4.21.0",
     "typescript": "^5.6.3"
   }
 }

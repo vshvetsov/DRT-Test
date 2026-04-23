@@ -64,16 +64,25 @@ Before marking work complete:
 ## Commands
 Package manager: **npm** (pnpm is the plan's documented choice but not installed locally; scripts are compatible with either).
 
+App:
 - `npm install` — install dependencies
 - `npm run dev` — start Next.js dev server at http://localhost:3000
 - `npm run build` — production build
 - `npm run start` — run the production build
 - `npm run typecheck` — `tsc --noEmit`
 
-Database / LLM scripts not yet created (D3 migrate, D4 seed). Apply schema manually for now:
-- `psql "$DATABASE_URL" -f db/schema.sql`
+Database (destructive, prototype-only):
+- `npm run db:migrate` — applies `db/schema.sql`; **drops and recreates all six tables**
+- `npm run db:seed` — truncates all six tables and writes deterministic fixtures; override the default reference date via `SEED_REFERENCE_DATE=YYYY-MM-DD`
+- `npm run db:verify` — read-only sanity check of row counts, per-vendor split, and category disjointness
 
-Before `npm run dev` can hit session-backed routes, copy `.env.example` to `.env.local` and set `SESSION_SECRET` (32+ chars, e.g. `openssl rand -hex 32`). `DATABASE_URL` and `ANTHROPIC_API_KEY` are only needed once later slices are wired up.
+Before running anything that touches the DB or session:
+- Copy `.env.example` to `.env.local`.
+- Set `SESSION_SECRET` (32+ chars, e.g. `openssl rand -hex 32`).
+- Set `DATABASE_URL` once you have a local Postgres or a Neon branch.
+- `ANTHROPIC_API_KEY` is only needed once `/api/ask` is wired (later slice).
+
+Typical local bring-up: `npm install` → fill `.env.local` → `npm run db:migrate` → `npm run db:seed` → `npm run db:verify` → `npm run dev`.
 
 Keep this section updated as the repo evolves.
 
