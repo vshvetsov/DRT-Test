@@ -62,8 +62,20 @@ Before marking work complete:
 - note remaining prototype limitations
 
 ## Commands
-- Add the real install / dev / build / test / lint / migration / seed commands here once the stack is created.
-- Keep this section updated as the repo evolves.
+Package manager: **npm** (pnpm is the plan's documented choice but not installed locally; scripts are compatible with either).
+
+- `npm install` — install dependencies
+- `npm run dev` — start Next.js dev server at http://localhost:3000
+- `npm run build` — production build
+- `npm run start` — run the production build
+- `npm run typecheck` — `tsc --noEmit`
+
+Database / LLM scripts not yet created (D3 migrate, D4 seed). Apply schema manually for now:
+- `psql "$DATABASE_URL" -f db/schema.sql`
+
+Before `npm run dev` can hit session-backed routes, copy `.env.example` to `.env.local` and set `SESSION_SECRET` (32+ chars, e.g. `openssl rand -hex 32`). `DATABASE_URL` and `ANTHROPIC_API_KEY` are only needed once later slices are wired up.
+
+Keep this section updated as the repo evolves.
 
 ## Completion rule
 A stage is complete only when its artifact is created, reviewed, and explicitly approved.
