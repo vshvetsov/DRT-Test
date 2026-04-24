@@ -154,6 +154,20 @@ function LineSeries({
   );
 }
 
+function Kpi({
+  chart,
+}: {
+  chart: Extract<ChartPayload, { type: 'kpi' }>;
+}) {
+  return (
+    <Card title={chart.title}>
+      <p className="text-4xl font-mono text-brand-textPrimary py-6 text-center tracking-tight">
+        {formatValue(chart.value, chart.unit)}
+      </p>
+    </Card>
+  );
+}
+
 function EmptyState({
   chart,
 }: {
@@ -171,6 +185,7 @@ function EmptyState({
 export function ChartRenderer({ chart }: { chart: ChartPayload }) {
   if (chart.type === 'bar_horizontal') return <BarHorizontal chart={chart} />;
   if (chart.type === 'line') return <LineSeries chart={chart} />;
+  if (chart.type === 'kpi') return <Kpi chart={chart} />;
   if (chart.type === 'empty') return <EmptyState chart={chart} />;
   // Exhaustiveness guard for future ChartPayload variants.
   const _exhaustive: never = chart;

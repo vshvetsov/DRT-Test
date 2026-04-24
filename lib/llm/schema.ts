@@ -96,6 +96,41 @@ export const SALES_OVER_TIME_TOOL: Tool = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// simple_total — one scalar aggregate over a required date range.
+// metric has THREE options here (orders is new). No limit, no bucket.
+// ---------------------------------------------------------------------------
+
+export const SIMPLE_TOTAL_TOOL: Tool = {
+  name: 'simple_total',
+  description:
+    "Compute a single scalar total for the current vendor over a required date range. Use this for questions asking for ONE NUMBER: a total, a count, or a sum (for example \"what was my total revenue last month\", \"how many orders this week\", \"how many units did I ship this quarter\", \"total sales over the last 30 days\"). Never use this for ranking products, for per-bucket trends over time, for category breakdowns, or for cancellation summaries.",
+  input_schema: {
+    type: 'object',
+    properties: {
+      metric: {
+        type: 'string',
+        enum: ['revenue', 'orders', 'units'],
+        description:
+          'What to total. revenue = USD, units = item count across all order lines, orders = COUNT of distinct order headers (not line items, not products).',
+      },
+      date_from: {
+        type: 'string',
+        pattern: '^\\d{4}-\\d{2}-\\d{2}$',
+        description:
+          'Inclusive start date in YYYY-MM-DD (UTC). ALWAYS supply this, computed relative to today.',
+      },
+      date_to: {
+        type: 'string',
+        pattern: '^\\d{4}-\\d{2}-\\d{2}$',
+        description:
+          'Inclusive end date in YYYY-MM-DD (UTC). ALWAYS supply this, computed relative to today.',
+      },
+    },
+    required: ['metric', 'date_from', 'date_to'],
+  },
+};
+
 export const REFUSE_TOOL: Tool = {
   name: 'refuse',
   description:
@@ -118,5 +153,6 @@ export const TOOL_DEFS: Tool[] = [
   TOP_PRODUCTS_TOOL,
   BOTTOM_PRODUCTS_TOOL,
   SALES_OVER_TIME_TOOL,
+  SIMPLE_TOTAL_TOOL,
   REFUSE_TOOL,
 ];

@@ -8,6 +8,11 @@ import {
   type SalesOverTimeArgs,
   type SalesOverTimeRow,
 } from './sales-over-time';
+import { simpleTotal } from './simple-total';
+import {
+  type SimpleTotalArgs,
+  type SimpleTotalRow,
+} from './simple-total';
 import { topProducts } from './top-products';
 
 // Public re-exports.
@@ -17,6 +22,9 @@ export { bottomProducts } from './bottom-products';
 export type { BottomProductsArgs, BottomProductsRow } from './bottom-products';
 export { salesOverTime } from './sales-over-time';
 export type { SalesOverTimeArgs, SalesOverTimeRow } from './sales-over-time';
+export { simpleTotal } from './simple-total';
+export type { SimpleTotalArgs, SimpleTotalRow } from './simple-total';
+export { getSimpleTotalValue } from './simple-total';
 export type {
   RankDirection,
   RankedProductsArgs,
@@ -34,7 +42,8 @@ export type {
 export type ToolSelectionInput =
   | { toolName: 'top_products'; args: RankedProductsArgs }
   | { toolName: 'bottom_products'; args: RankedProductsArgs }
-  | { toolName: 'sales_over_time'; args: SalesOverTimeArgs };
+  | { toolName: 'sales_over_time'; args: SalesOverTimeArgs }
+  | { toolName: 'simple_total'; args: SimpleTotalArgs };
 
 // ---------------------------------------------------------------------------
 // ToolResult — what the executor returns and the chart/text dispatchers
@@ -56,6 +65,11 @@ export type ToolResult =
       toolName: 'sales_over_time';
       rows: SalesOverTimeRow[];
       args: SalesOverTimeArgs;
+    }
+  | {
+      toolName: 'simple_total';
+      rows: SimpleTotalRow[];
+      args: SimpleTotalArgs;
     };
 
 export async function runTool(
@@ -74,6 +88,10 @@ export async function runTool(
     case 'sales_over_time': {
       const rows = await salesOverTime.run(selection.args, vendorId);
       return { toolName: 'sales_over_time', rows, args: selection.args };
+    }
+    case 'simple_total': {
+      const rows = await simpleTotal.run(selection.args, vendorId);
+      return { toolName: 'simple_total', rows, args: selection.args };
     }
     default: {
       const _exhaustive: never = selection;

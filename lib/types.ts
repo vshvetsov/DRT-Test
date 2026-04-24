@@ -23,13 +23,24 @@ export type LineChart = {
   unit: ChartUnit;
 };
 
+export type KpiChart = {
+  type: 'kpi';
+  title: string;
+  value: number;
+  unit: ChartUnit;
+};
+
 export type EmptyChart = {
   type: 'empty';
   title: string;
   message: string;
 };
 
-export type ChartPayload = BarHorizontalChart | LineChart | EmptyChart;
+export type ChartPayload =
+  | BarHorizontalChart
+  | LineChart
+  | KpiChart
+  | EmptyChart;
 
 export type AskStatus = 'ok' | 'out_of_scope' | 'empty' | 'unavailable_reason';
 

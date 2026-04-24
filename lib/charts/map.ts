@@ -1,9 +1,12 @@
-import type {
-  RankedProductsArgs,
-  RankedProductsRow,
-  SalesOverTimeArgs,
-  SalesOverTimeRow,
-  ToolResult,
+import {
+  getSimpleTotalValue,
+  type RankedProductsArgs,
+  type RankedProductsRow,
+  type SalesOverTimeArgs,
+  type SalesOverTimeRow,
+  type SimpleTotalArgs,
+  type SimpleTotalRow,
+  type ToolResult,
 } from '@/lib/tools';
 import type { ChartPayload } from '@/lib/types';
 
@@ -11,8 +14,10 @@ import type { ChartPayload } from '@/lib/types';
 // Ranked-product helpers (top / bottom share these).
 // ---------------------------------------------------------------------------
 
-function metricLabel(metric: 'revenue' | 'units'): string {
-  return metric === 'revenue' ? 'revenue' : 'units sold';
+function metricLabel(metric: 'revenue' | 'orders' | 'units'): string {
+  if (metric === 'revenue') return 'revenue';
+  if (metric === 'orders') return 'orders';
+  return 'units sold';
 }
 
 function describeRangeOptional(
@@ -94,6 +99,37 @@ function capitalize(s: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// simple_total helper — emits `kpi` or `empty`. Empty only reached when the
+// tool already returned [] (its chosen metric was zero or null).
+// ---------------------------------------------------------------------------
+
+function simpleTotalTitle(args: SimpleTotalArgs): string {
+  return `Total ${metricLabel(args.metric)} · ${args.date_from} to ${args.date_to}`;
+}
+
+function chartForSimpleTotal(
+  rows: SimpleTotalRow[],
+  args: SimpleTotalArgs,
+): ChartPayload {
+  const title = simpleTotalTitle(args);
+  const row = rows[0];
+  if (!row) {
+    return {
+      type: 'empty',
+      title,
+      message: 'No sales in this range.',
+    };
+  }
+  const value = getSimpleTotalValue(row, args.metric);
+  return {
+    type: 'kpi',
+    title,
+    value,
+    unit: args.metric === 'revenue' ? 'usd' : 'count',
+  };
+}
+
+// ---------------------------------------------------------------------------
 // chartForResult — the single entry point. Discriminates on toolName so any
 // future tool must add a branch or the TypeScript never-check fails.
 // ---------------------------------------------------------------------------
@@ -106,6 +142,8 @@ export function chartForResult(result: ToolResult): ChartPayload {
       return chartForRankedProducts(result.rows, result.args, 'bottom');
     case 'sales_over_time':
       return chartForSalesOverTime(result.rows, result.args);
+    case 'simple_total':
+      return chartForSimpleTotal(result.rows, result.args);
     default: {
       const _exhaustive: never = result;
       void _exhaustive;

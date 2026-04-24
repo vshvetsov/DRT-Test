@@ -1,9 +1,12 @@
-import type {
-  RankedProductsArgs,
-  RankedProductsRow,
-  SalesOverTimeArgs,
-  SalesOverTimeRow,
-  ToolResult,
+import {
+  getSimpleTotalValue,
+  type RankedProductsArgs,
+  type RankedProductsRow,
+  type SalesOverTimeArgs,
+  type SalesOverTimeRow,
+  type SimpleTotalArgs,
+  type SimpleTotalRow,
+  type ToolResult,
 } from '@/lib/tools';
 
 // ---------------------------------------------------------------------------
@@ -27,8 +30,7 @@ function describeOptionalRange(
   date_from?: string,
   date_to?: string,
 ): string {
-  if (date_from && date_to)
-    return ` from ${date_from} through ${date_to}`;
+  if (date_from && date_to) return ` from ${date_from} through ${date_to}`;
   if (date_from) return ` from ${date_from}`;
   if (date_to) return ` through ${date_to}`;
   return '';
@@ -84,6 +86,30 @@ function answerForSalesOverTime(
 }
 
 // ---------------------------------------------------------------------------
+// simple_total — one-liner naming the scalar value.
+// ---------------------------------------------------------------------------
+
+function metricNoun(metric: SimpleTotalArgs['metric']): string {
+  if (metric === 'revenue') return 'revenue';
+  if (metric === 'orders') return 'orders';
+  return 'units sold';
+}
+
+function answerForSimpleTotal(
+  rows: SimpleTotalRow[],
+  args: SimpleTotalArgs,
+): string {
+  const row = rows[0];
+  if (!row) {
+    // Defensive: caller should emit `status: 'empty'` before reaching here.
+    return `No ${metricNoun(args.metric)} from ${args.date_from} through ${args.date_to}.`;
+  }
+  const value = getSimpleTotalValue(row, args.metric);
+  const fmt = args.metric === 'revenue' ? formatUsd : formatCount;
+  return `Your total ${metricNoun(args.metric)} from ${args.date_from} through ${args.date_to}: ${fmt(value)}.`;
+}
+
+// ---------------------------------------------------------------------------
 // answerForResult — the single entry point.
 // ---------------------------------------------------------------------------
 
@@ -95,6 +121,8 @@ export function answerForResult(result: ToolResult): string {
       return answerForRankedProducts(result.rows, result.args, 'bottom');
     case 'sales_over_time':
       return answerForSalesOverTime(result.rows, result.args);
+    case 'simple_total':
+      return answerForSimpleTotal(result.rows, result.args);
     default: {
       const _exhaustive: never = result;
       void _exhaustive;

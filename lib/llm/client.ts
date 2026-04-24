@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { env } from '@/lib/env';
 import { bottomProducts } from '@/lib/tools/bottom-products';
 import { salesOverTime } from '@/lib/tools/sales-over-time';
+import { simpleTotal } from '@/lib/tools/simple-total';
 import { topProducts } from '@/lib/tools/top-products';
 import type { ToolSelectionInput } from '@/lib/tools';
 import { TOOL_DEFS } from './schema';
@@ -102,6 +103,19 @@ export async function selectTool(
       console.log('[llm] selected tool: sales_over_time', parsed.data);
     }
     return { kind: 'tool', toolName: 'sales_over_time', args: parsed.data };
+  }
+
+  if (toolUse.name === 'simple_total') {
+    const parsed = simpleTotal.argSchema.safeParse(toolUse.input);
+    if (!parsed.success) {
+      return refuseAsOutOfScope(
+        `simple_total arg validation failed: ${parsed.error.message}`,
+      );
+    }
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[llm] selected tool: simple_total', parsed.data);
+    }
+    return { kind: 'tool', toolName: 'simple_total', args: parsed.data };
   }
 
   return refuseAsOutOfScope(`unknown tool name: ${toolUse.name}`);
