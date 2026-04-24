@@ -1,4 +1,9 @@
 import { bottomProducts } from './bottom-products';
+import { categoryBreakdown } from './category-breakdown';
+import {
+  type CategoryBreakdownArgs,
+  type CategoryBreakdownRow,
+} from './category-breakdown';
 import {
   type RankedProductsArgs,
   type RankedProductsRow,
@@ -25,6 +30,11 @@ export type { SalesOverTimeArgs, SalesOverTimeRow } from './sales-over-time';
 export { simpleTotal } from './simple-total';
 export type { SimpleTotalArgs, SimpleTotalRow } from './simple-total';
 export { getSimpleTotalValue } from './simple-total';
+export { categoryBreakdown } from './category-breakdown';
+export type {
+  CategoryBreakdownArgs,
+  CategoryBreakdownRow,
+} from './category-breakdown';
 export type {
   RankDirection,
   RankedProductsArgs,
@@ -43,7 +53,8 @@ export type ToolSelectionInput =
   | { toolName: 'top_products'; args: RankedProductsArgs }
   | { toolName: 'bottom_products'; args: RankedProductsArgs }
   | { toolName: 'sales_over_time'; args: SalesOverTimeArgs }
-  | { toolName: 'simple_total'; args: SimpleTotalArgs };
+  | { toolName: 'simple_total'; args: SimpleTotalArgs }
+  | { toolName: 'category_breakdown'; args: CategoryBreakdownArgs };
 
 // ---------------------------------------------------------------------------
 // ToolResult — what the executor returns and the chart/text dispatchers
@@ -70,6 +81,11 @@ export type ToolResult =
       toolName: 'simple_total';
       rows: SimpleTotalRow[];
       args: SimpleTotalArgs;
+    }
+  | {
+      toolName: 'category_breakdown';
+      rows: CategoryBreakdownRow[];
+      args: CategoryBreakdownArgs;
     };
 
 export async function runTool(
@@ -92,6 +108,10 @@ export async function runTool(
     case 'simple_total': {
       const rows = await simpleTotal.run(selection.args, vendorId);
       return { toolName: 'simple_total', rows, args: selection.args };
+    }
+    case 'category_breakdown': {
+      const rows = await categoryBreakdown.run(selection.args, vendorId);
+      return { toolName: 'category_breakdown', rows, args: selection.args };
     }
     default: {
       const _exhaustive: never = selection;

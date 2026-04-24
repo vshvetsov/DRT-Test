@@ -30,6 +30,13 @@ export type KpiChart = {
   unit: ChartUnit;
 };
 
+export type PieChart = {
+  type: 'pie';
+  title: string;
+  slices: Array<{ label: string; v: number }>;
+  unit: ChartUnit;
+};
+
 export type EmptyChart = {
   type: 'empty';
   title: string;
@@ -40,6 +47,7 @@ export type ChartPayload =
   | BarHorizontalChart
   | LineChart
   | KpiChart
+  | PieChart
   | EmptyChart;
 
 export type AskStatus = 'ok' | 'out_of_scope' | 'empty' | 'unavailable_reason';

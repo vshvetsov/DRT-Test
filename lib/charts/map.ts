@@ -1,5 +1,7 @@
 import {
   getSimpleTotalValue,
+  type CategoryBreakdownArgs,
+  type CategoryBreakdownRow,
   type RankedProductsArgs,
   type RankedProductsRow,
   type SalesOverTimeArgs,
@@ -130,6 +132,45 @@ function chartForSimpleTotal(
 }
 
 // ---------------------------------------------------------------------------
+// category_breakdown helper — emits `pie` or `empty`. Sorts slices DESC by
+// the chosen metric so the legend reads largest-first.
+//
+// Note: tech-spec §6 maps >6 slices to `bar_vertical`, but the current seed
+// guarantees ≤6 categories per vendor. If a future vendor ships with more,
+// extend this to fall back to `bar_vertical` (and add the variant to
+// ChartPayload + ChartRenderer). Pie with up to ~6 slices is legible.
+// ---------------------------------------------------------------------------
+
+function categoryBreakdownTitle(args: CategoryBreakdownArgs): string {
+  const range = describeRangeOptional(args.date_from, args.date_to);
+  const prefix = capitalize(metricLabel(args.metric));
+  return `${prefix} by category${range ? ` · ${range}` : ' · overall'}`;
+}
+
+function chartForCategoryBreakdown(
+  rows: CategoryBreakdownRow[],
+  args: CategoryBreakdownArgs,
+): ChartPayload {
+  const title = categoryBreakdownTitle(args);
+  if (rows.length === 0) {
+    return {
+      type: 'empty',
+      title,
+      message: 'No sales in this range.',
+    };
+  }
+  const pickValue = (r: CategoryBreakdownRow): number =>
+    args.metric === 'revenue' ? r.revenue : r.units;
+  const sorted = [...rows].sort((a, b) => pickValue(b) - pickValue(a));
+  return {
+    type: 'pie',
+    title,
+    slices: sorted.map((r) => ({ label: r.category, v: pickValue(r) })),
+    unit: args.metric === 'revenue' ? 'usd' : 'count',
+  };
+}
+
+// ---------------------------------------------------------------------------
 // chartForResult — the single entry point. Discriminates on toolName so any
 // future tool must add a branch or the TypeScript never-check fails.
 // ---------------------------------------------------------------------------
@@ -144,6 +185,8 @@ export function chartForResult(result: ToolResult): ChartPayload {
       return chartForSalesOverTime(result.rows, result.args);
     case 'simple_total':
       return chartForSimpleTotal(result.rows, result.args);
+    case 'category_breakdown':
+      return chartForCategoryBreakdown(result.rows, result.args);
     default: {
       const _exhaustive: never = result;
       void _exhaustive;

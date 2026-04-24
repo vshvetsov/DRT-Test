@@ -1,5 +1,7 @@
 import {
   getSimpleTotalValue,
+  type CategoryBreakdownArgs,
+  type CategoryBreakdownRow,
   type RankedProductsArgs,
   type RankedProductsRow,
   type SalesOverTimeArgs,
@@ -110,6 +112,29 @@ function answerForSimpleTotal(
 }
 
 // ---------------------------------------------------------------------------
+// category_breakdown — one-liner naming the largest category.
+// ---------------------------------------------------------------------------
+
+function answerForCategoryBreakdown(
+  rows: CategoryBreakdownRow[],
+  args: CategoryBreakdownArgs,
+): string {
+  const metric = args.metric === 'revenue' ? 'revenue' : 'units sold';
+  const range = describeOptionalRange(args.date_from, args.date_to);
+  if (rows.length === 0) {
+    // Defensive: caller should emit `status: 'empty'` before reaching here.
+    return `No category sales${range}.`;
+  }
+  const pickValue = (r: CategoryBreakdownRow): number =>
+    args.metric === 'revenue' ? r.revenue : r.units;
+  const largest = rows.reduce((top, r) =>
+    pickValue(r) > pickValue(top) ? r : top,
+  );
+  const fmt = args.metric === 'revenue' ? formatUsd : formatCount;
+  return `Your ${metric} by category${range}. Largest: ${largest.category} at ${fmt(pickValue(largest))}.`;
+}
+
+// ---------------------------------------------------------------------------
 // answerForResult — the single entry point.
 // ---------------------------------------------------------------------------
 
@@ -123,6 +148,8 @@ export function answerForResult(result: ToolResult): string {
       return answerForSalesOverTime(result.rows, result.args);
     case 'simple_total':
       return answerForSimpleTotal(result.rows, result.args);
+    case 'category_breakdown':
+      return answerForCategoryBreakdown(result.rows, result.args);
     default: {
       const _exhaustive: never = result;
       void _exhaustive;

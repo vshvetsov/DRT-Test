@@ -131,6 +131,41 @@ export const SIMPLE_TOTAL_TOOL: Tool = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// category_breakdown — group the vendor's sales by PRODUCTS.category.
+// metric required; dates optional. No limit, no bucket.
+// ---------------------------------------------------------------------------
+
+export const CATEGORY_BREAKDOWN_TOOL: Tool = {
+  name: 'category_breakdown',
+  description:
+    "Group the current vendor's sales by product category (revenue or units) over an optional date range. Use this for questions that ask to break down or split sales across categories (for example \"sales by category this month\", \"which categories are best\", \"revenue by category\", \"category breakdown of units\"). Never use this for temporal bucketing (use sales_over_time for that), for ranking products (use top_products/bottom_products), or for single totals (use simple_total).",
+  input_schema: {
+    type: 'object',
+    properties: {
+      metric: {
+        type: 'string',
+        enum: ['revenue', 'units'],
+        description:
+          'Whether to break down by revenue (USD) or units sold (item count).',
+      },
+      date_from: {
+        type: 'string',
+        pattern: '^\\d{4}-\\d{2}-\\d{2}$',
+        description:
+          'Inclusive start date in YYYY-MM-DD (UTC). Omit for no lower bound (overall).',
+      },
+      date_to: {
+        type: 'string',
+        pattern: '^\\d{4}-\\d{2}-\\d{2}$',
+        description:
+          'Inclusive end date in YYYY-MM-DD (UTC). Omit for no upper bound (overall).',
+      },
+    },
+    required: ['metric'],
+  },
+};
+
 export const REFUSE_TOOL: Tool = {
   name: 'refuse',
   description:
@@ -154,5 +189,6 @@ export const TOOL_DEFS: Tool[] = [
   BOTTOM_PRODUCTS_TOOL,
   SALES_OVER_TIME_TOOL,
   SIMPLE_TOTAL_TOOL,
+  CATEGORY_BREAKDOWN_TOOL,
   REFUSE_TOOL,
 ];
