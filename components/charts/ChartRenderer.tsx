@@ -15,7 +15,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import type { ChartPayload, ChartUnit } from '@/lib/types';
+import { formatByUnit } from '@/lib/format';
+import type { ChartPayload } from '@/lib/types';
 
 // Brand tokens referenced inline — these MUST match lib/types.ts ChartUnit and
 // tailwind.config.ts's `brand` palette. No other colours permitted in charts.
@@ -35,20 +36,6 @@ const PIE_PALETTE = [
   '#003D3D', // much darker
   '#99DFDF', // very light
 ];
-
-function formatValue(v: number, unit: ChartUnit): string {
-  if (unit === 'usd') {
-    return v.toLocaleString('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      maximumFractionDigits: 2,
-    });
-  }
-  if (unit === 'pct') {
-    return `${v.toFixed(1)}%`;
-  }
-  return v.toLocaleString('en-US');
-}
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -83,7 +70,7 @@ function BarHorizontal({
           <CartesianGrid horizontal={false} stroke={BRAND_HAIRLINE} />
           <XAxis
             type="number"
-            tickFormatter={(v: number) => formatValue(v, chart.unit)}
+            tickFormatter={(v: number) => formatByUnit(v, chart.unit)}
             stroke={BRAND_MUTED}
             fontSize={11}
           />
@@ -97,7 +84,7 @@ function BarHorizontal({
           <Tooltip
             formatter={(value) => {
               const v = typeof value === 'number' ? value : Number(value);
-              return [formatValue(v, chart.unit), ''];
+              return [formatByUnit(v, chart.unit), ''];
             }}
             cursor={{ fill: BRAND_BG_APP }}
             contentStyle={{
@@ -140,13 +127,13 @@ function LineSeries({
           <YAxis
             stroke={BRAND_MUTED}
             fontSize={11}
-            tickFormatter={(v: number) => formatValue(v, chart.unit)}
+            tickFormatter={(v: number) => formatByUnit(v, chart.unit)}
             width={72}
           />
           <Tooltip
             formatter={(value) => {
               const v = typeof value === 'number' ? value : Number(value);
-              return [formatValue(v, chart.unit), ''];
+              return [formatByUnit(v, chart.unit), ''];
             }}
             cursor={{ stroke: BRAND_HAIRLINE, strokeWidth: 1 }}
             contentStyle={{
@@ -178,7 +165,7 @@ function Kpi({
   return (
     <Card title={chart.title}>
       <p className="text-4xl font-mono text-brand-textPrimary py-6 text-center tracking-tight">
-        {formatValue(chart.value, chart.unit)}
+        {formatByUnit(chart.value, chart.unit)}
       </p>
     </Card>
   );
@@ -218,7 +205,7 @@ function PieDiagram({
           <Tooltip
             formatter={(value, name) => {
               const v = typeof value === 'number' ? value : Number(value);
-              return [formatValue(v, chart.unit), String(name)];
+              return [formatByUnit(v, chart.unit), String(name)];
             }}
             contentStyle={{
               border: `1px solid ${BRAND_HAIRLINE}`,

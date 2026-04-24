@@ -1,4 +1,9 @@
 import { bottomProducts } from './bottom-products';
+import { cancellationSummary } from './cancellation-summary';
+import {
+  type CancellationSummaryArgs,
+  type CancellationSummaryRow,
+} from './cancellation-summary';
 import { categoryBreakdown } from './category-breakdown';
 import {
   type CategoryBreakdownArgs,
@@ -35,6 +40,11 @@ export type {
   CategoryBreakdownArgs,
   CategoryBreakdownRow,
 } from './category-breakdown';
+export { cancellationSummary, cancellationRatePct } from './cancellation-summary';
+export type {
+  CancellationSummaryArgs,
+  CancellationSummaryRow,
+} from './cancellation-summary';
 export type {
   RankDirection,
   RankedProductsArgs,
@@ -54,7 +64,8 @@ export type ToolSelectionInput =
   | { toolName: 'bottom_products'; args: RankedProductsArgs }
   | { toolName: 'sales_over_time'; args: SalesOverTimeArgs }
   | { toolName: 'simple_total'; args: SimpleTotalArgs }
-  | { toolName: 'category_breakdown'; args: CategoryBreakdownArgs };
+  | { toolName: 'category_breakdown'; args: CategoryBreakdownArgs }
+  | { toolName: 'cancellation_summary'; args: CancellationSummaryArgs };
 
 // ---------------------------------------------------------------------------
 // ToolResult — what the executor returns and the chart/text dispatchers
@@ -86,6 +97,11 @@ export type ToolResult =
       toolName: 'category_breakdown';
       rows: CategoryBreakdownRow[];
       args: CategoryBreakdownArgs;
+    }
+  | {
+      toolName: 'cancellation_summary';
+      rows: CancellationSummaryRow[];
+      args: CancellationSummaryArgs;
     };
 
 export async function runTool(
@@ -112,6 +128,10 @@ export async function runTool(
     case 'category_breakdown': {
       const rows = await categoryBreakdown.run(selection.args, vendorId);
       return { toolName: 'category_breakdown', rows, args: selection.args };
+    }
+    case 'cancellation_summary': {
+      const rows = await cancellationSummary.run(selection.args, vendorId);
+      return { toolName: 'cancellation_summary', rows, args: selection.args };
     }
     default: {
       const _exhaustive: never = selection;

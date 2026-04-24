@@ -1,5 +1,9 @@
+import { formatCount, formatPct, formatUsd } from '@/lib/format';
 import {
+  cancellationRatePct,
   getSimpleTotalValue,
+  type CancellationSummaryArgs,
+  type CancellationSummaryRow,
   type CategoryBreakdownArgs,
   type CategoryBreakdownRow,
   type RankedProductsArgs,
@@ -13,20 +17,9 @@ import {
 
 // ---------------------------------------------------------------------------
 // Server-side text templates. Numbers come only from tool payloads — the LLM
-// never writes response text.
+// never writes response text. Number formatting is owned by lib/format.ts,
+// shared with the client chart renderer.
 // ---------------------------------------------------------------------------
-
-function formatUsd(v: number): string {
-  return v.toLocaleString('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 2,
-  });
-}
-
-function formatCount(v: number): string {
-  return v.toLocaleString('en-US');
-}
 
 function describeOptionalRange(
   date_from?: string,
@@ -135,6 +128,28 @@ function answerForCategoryBreakdown(
 }
 
 // ---------------------------------------------------------------------------
+// cancellation_summary — one line stating rate AND counts together. `scope`
+// reads naturally whether dates are present or not ("Your cancellation rate
+// from X through Y: …" vs "Your cancellation rate overall: …").
+// ---------------------------------------------------------------------------
+
+function answerForCancellationSummary(
+  rows: CancellationSummaryRow[],
+  args: CancellationSummaryArgs,
+): string {
+  const row = rows[0];
+  if (!row) {
+    // Defensive: caller should emit `status: 'empty'` before reaching here.
+    const range = describeOptionalRange(args.date_from, args.date_to);
+    return `No orders${range || ' on record'}.`;
+  }
+  const rate = cancellationRatePct(row);
+  const range = describeOptionalRange(args.date_from, args.date_to);
+  const scope = range || ' overall';
+  return `Your cancellation rate${scope}: ${formatPct(rate)} (${formatCount(row.canceled_orders)} of ${formatCount(row.total_orders)} orders).`;
+}
+
+// ---------------------------------------------------------------------------
 // answerForResult — the single entry point.
 // ---------------------------------------------------------------------------
 
@@ -150,6 +165,8 @@ export function answerForResult(result: ToolResult): string {
       return answerForSimpleTotal(result.rows, result.args);
     case 'category_breakdown':
       return answerForCategoryBreakdown(result.rows, result.args);
+    case 'cancellation_summary':
+      return answerForCancellationSummary(result.rows, result.args);
     default: {
       const _exhaustive: never = result;
       void _exhaustive;

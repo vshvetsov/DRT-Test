@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { env } from '@/lib/env';
 import { bottomProducts } from '@/lib/tools/bottom-products';
+import { cancellationSummary } from '@/lib/tools/cancellation-summary';
 import { categoryBreakdown } from '@/lib/tools/category-breakdown';
 import { salesOverTime } from '@/lib/tools/sales-over-time';
 import { simpleTotal } from '@/lib/tools/simple-total';
@@ -130,6 +131,19 @@ export async function selectTool(
       console.log('[llm] selected tool: category_breakdown', parsed.data);
     }
     return { kind: 'tool', toolName: 'category_breakdown', args: parsed.data };
+  }
+
+  if (toolUse.name === 'cancellation_summary') {
+    const parsed = cancellationSummary.argSchema.safeParse(toolUse.input);
+    if (!parsed.success) {
+      return refuseAsOutOfScope(
+        `cancellation_summary arg validation failed: ${parsed.error.message}`,
+      );
+    }
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[llm] selected tool: cancellation_summary', parsed.data);
+    }
+    return { kind: 'tool', toolName: 'cancellation_summary', args: parsed.data };
   }
 
   return refuseAsOutOfScope(`unknown tool name: ${toolUse.name}`);

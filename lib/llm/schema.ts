@@ -166,6 +166,35 @@ export const CATEGORY_BREAKDOWN_TOOL: Tool = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// cancellation_summary — total / canceled / rate for the vendor over an
+// optional date range. No metric, no limit, no bucket, no group_by.
+// ---------------------------------------------------------------------------
+
+export const CANCELLATION_SUMMARY_TOOL: Tool = {
+  name: 'cancellation_summary',
+  description:
+    "Compute the current vendor's cancellation rate and counts (total orders, canceled orders, percentage) over an optional date range. Use this for questions asking for a rate or count of cancellations (for example \"what is my cancellation rate\", \"how many cancellations this month\", \"canceled order count last quarter\"). Never use this for WHY questions about cancellations (cause/reason questions) — those must call 'refuse' with reason='unavailable_reason'. Never use this for a breakdown of cancellations by reason category — that is not yet implemented; call 'refuse' with reason='out_of_scope'.",
+  input_schema: {
+    type: 'object',
+    properties: {
+      date_from: {
+        type: 'string',
+        pattern: '^\\d{4}-\\d{2}-\\d{2}$',
+        description:
+          'Inclusive start date in YYYY-MM-DD (UTC). Omit for no lower bound (overall).',
+      },
+      date_to: {
+        type: 'string',
+        pattern: '^\\d{4}-\\d{2}-\\d{2}$',
+        description:
+          'Inclusive end date in YYYY-MM-DD (UTC). Omit for no upper bound (overall).',
+      },
+    },
+    required: [],
+  },
+};
+
 export const REFUSE_TOOL: Tool = {
   name: 'refuse',
   description:
@@ -190,5 +219,6 @@ export const TOOL_DEFS: Tool[] = [
   SALES_OVER_TIME_TOOL,
   SIMPLE_TOTAL_TOOL,
   CATEGORY_BREAKDOWN_TOOL,
+  CANCELLATION_SUMMARY_TOOL,
   REFUSE_TOOL,
 ];

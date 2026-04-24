@@ -1,5 +1,8 @@
 import {
+  cancellationRatePct,
   getSimpleTotalValue,
+  type CancellationSummaryArgs,
+  type CancellationSummaryRow,
   type CategoryBreakdownArgs,
   type CategoryBreakdownRow,
   type RankedProductsArgs,
@@ -171,6 +174,38 @@ function chartForCategoryBreakdown(
 }
 
 // ---------------------------------------------------------------------------
+// cancellation_summary helper — emits `kpi` with unit=pct (or empty when the
+// tool returned [] because total_orders was 0). Rate is computed via the
+// shared cancellationRatePct so text and chart agree on the value.
+// ---------------------------------------------------------------------------
+
+function cancellationSummaryTitle(args: CancellationSummaryArgs): string {
+  const range = describeRangeOptional(args.date_from, args.date_to);
+  return `Cancellation rate${range ? ` · ${range}` : ' · overall'}`;
+}
+
+function chartForCancellationSummary(
+  rows: CancellationSummaryRow[],
+  args: CancellationSummaryArgs,
+): ChartPayload {
+  const title = cancellationSummaryTitle(args);
+  const row = rows[0];
+  if (!row) {
+    return {
+      type: 'empty',
+      title,
+      message: 'No orders in this range.',
+    };
+  }
+  return {
+    type: 'kpi',
+    title,
+    value: cancellationRatePct(row),
+    unit: 'pct',
+  };
+}
+
+// ---------------------------------------------------------------------------
 // chartForResult — the single entry point. Discriminates on toolName so any
 // future tool must add a branch or the TypeScript never-check fails.
 // ---------------------------------------------------------------------------
@@ -187,6 +222,8 @@ export function chartForResult(result: ToolResult): ChartPayload {
       return chartForSimpleTotal(result.rows, result.args);
     case 'category_breakdown':
       return chartForCategoryBreakdown(result.rows, result.args);
+    case 'cancellation_summary':
+      return chartForCancellationSummary(result.rows, result.args);
     default: {
       const _exhaustive: never = result;
       void _exhaustive;
