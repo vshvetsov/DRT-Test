@@ -4,6 +4,8 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -96,6 +98,62 @@ function BarHorizontal({
   );
 }
 
+function LineSeries({
+  chart,
+}: {
+  chart: Extract<ChartPayload, { type: 'line' }>;
+}) {
+  const data = chart.points.map((p) => ({ t: p.t, v: p.v }));
+  // Fixed height keeps visual weight consistent regardless of point count.
+  const chartHeight = 240;
+  return (
+    <Card title={chart.title}>
+      <ResponsiveContainer width="100%" height={chartHeight}>
+        <LineChart
+          data={data}
+          margin={{ top: 8, right: 24, left: 4, bottom: 4 }}
+        >
+          <CartesianGrid stroke={BRAND_HAIRLINE} strokeDasharray="3 3" />
+          <XAxis
+            dataKey="t"
+            stroke={BRAND_MUTED}
+            fontSize={11}
+            tickMargin={6}
+            minTickGap={24}
+          />
+          <YAxis
+            stroke={BRAND_MUTED}
+            fontSize={11}
+            tickFormatter={(v: number) => formatValue(v, chart.unit)}
+            width={72}
+          />
+          <Tooltip
+            formatter={(value) => {
+              const v = typeof value === 'number' ? value : Number(value);
+              return [formatValue(v, chart.unit), ''];
+            }}
+            cursor={{ stroke: BRAND_HAIRLINE, strokeWidth: 1 }}
+            contentStyle={{
+              border: `1px solid ${BRAND_HAIRLINE}`,
+              borderRadius: 4,
+              fontSize: 12,
+            }}
+            labelStyle={{ color: BRAND_MUTED }}
+          />
+          <Line
+            type="monotone"
+            dataKey="v"
+            stroke={BRAND_PRIMARY}
+            strokeWidth={2}
+            dot={{ r: 3, stroke: BRAND_PRIMARY, fill: BRAND_PRIMARY }}
+            activeDot={{ r: 5, stroke: BRAND_PRIMARY, fill: BRAND_PRIMARY }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </Card>
+  );
+}
+
 function EmptyState({
   chart,
 }: {
@@ -112,6 +170,7 @@ function EmptyState({
 
 export function ChartRenderer({ chart }: { chart: ChartPayload }) {
   if (chart.type === 'bar_horizontal') return <BarHorizontal chart={chart} />;
+  if (chart.type === 'line') return <LineSeries chart={chart} />;
   if (chart.type === 'empty') return <EmptyState chart={chart} />;
   // Exhaustiveness guard for future ChartPayload variants.
   const _exhaustive: never = chart;

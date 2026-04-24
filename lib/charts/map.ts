@@ -1,23 +1,27 @@
 import type {
   RankedProductsArgs,
   RankedProductsRow,
+  SalesOverTimeArgs,
+  SalesOverTimeRow,
   ToolResult,
 } from '@/lib/tools';
 import type { ChartPayload } from '@/lib/types';
 
 // ---------------------------------------------------------------------------
-// Helpers shared by the ranked-product tools (top / bottom). Title format
-// differs only in the "Top" vs "Bottom" prefix.
+// Ranked-product helpers (top / bottom share these).
 // ---------------------------------------------------------------------------
 
-function metricLabel(args: RankedProductsArgs): string {
-  return args.metric === 'revenue' ? 'revenue' : 'units sold';
+function metricLabel(metric: 'revenue' | 'units'): string {
+  return metric === 'revenue' ? 'revenue' : 'units sold';
 }
 
-function describeRange(args: RankedProductsArgs): string {
-  if (args.date_from && args.date_to) return `${args.date_from} to ${args.date_to}`;
-  if (args.date_from) return `from ${args.date_from}`;
-  if (args.date_to) return `through ${args.date_to}`;
+function describeRangeOptional(
+  date_from?: string,
+  date_to?: string,
+): string {
+  if (date_from && date_to) return `${date_from} to ${date_to}`;
+  if (date_from) return `from ${date_from}`;
+  if (date_to) return `through ${date_to}`;
   return '';
 }
 
@@ -26,8 +30,8 @@ function rankedTitle(
   direction: 'top' | 'bottom',
 ): string {
   const prefix = direction === 'top' ? 'Top' : 'Bottom';
-  const range = describeRange(args);
-  return `${prefix} ${args.limit} products by ${metricLabel(args)}${range ? ` · ${range}` : ''}`;
+  const range = describeRangeOptional(args.date_from, args.date_to);
+  return `${prefix} ${args.limit} products by ${metricLabel(args.metric)}${range ? ` · ${range}` : ''}`;
 }
 
 function chartForRankedProducts(
@@ -55,6 +59,41 @@ function chartForRankedProducts(
 }
 
 // ---------------------------------------------------------------------------
+// sales_over_time helper — emits `line` or `empty`.
+// ---------------------------------------------------------------------------
+
+function salesOverTimeTitle(args: SalesOverTimeArgs): string {
+  return `${metricLabel(args.metric)} by ${args.bucket} · ${args.date_from} to ${args.date_to}`;
+}
+
+function chartForSalesOverTime(
+  rows: SalesOverTimeRow[],
+  args: SalesOverTimeArgs,
+): ChartPayload {
+  const title = capitalize(salesOverTimeTitle(args));
+  if (rows.length === 0) {
+    return {
+      type: 'empty',
+      title,
+      message: 'No sales in this range.',
+    };
+  }
+  return {
+    type: 'line',
+    title,
+    points: rows.map((r) => ({
+      t: r.bucket_start,
+      v: args.metric === 'revenue' ? r.revenue : r.units,
+    })),
+    unit: args.metric === 'revenue' ? 'usd' : 'count',
+  };
+}
+
+function capitalize(s: string): string {
+  return s.length === 0 ? s : s[0]!.toUpperCase() + s.slice(1);
+}
+
+// ---------------------------------------------------------------------------
 // chartForResult — the single entry point. Discriminates on toolName so any
 // future tool must add a branch or the TypeScript never-check fails.
 // ---------------------------------------------------------------------------
@@ -65,6 +104,8 @@ export function chartForResult(result: ToolResult): ChartPayload {
       return chartForRankedProducts(result.rows, result.args, 'top');
     case 'bottom_products':
       return chartForRankedProducts(result.rows, result.args, 'bottom');
+    case 'sales_over_time':
+      return chartForSalesOverTime(result.rows, result.args);
     default: {
       const _exhaustive: never = result;
       void _exhaustive;

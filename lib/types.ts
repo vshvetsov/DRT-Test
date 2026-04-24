@@ -1,9 +1,10 @@
 /**
  * Shared types for the /api/ask response envelope and chart payloads.
  *
- * ChartPayload is a discriminated union that will grow as more chart types
- * are wired. This slice defines only the two variants that the one-tool
- * slice emits: `bar_horizontal` (top_products result) and `empty` (no rows).
+ * ChartPayload is a discriminated union that grows as more chart types are
+ * wired. The dispatchers (lib/charts/map.ts, components/charts/
+ * ChartRenderer.tsx) use exhaustiveness guards so adding a variant here is
+ * a compile error until every branch handles it.
  */
 
 export type ChartUnit = 'usd' | 'count' | 'pct';
@@ -15,13 +16,20 @@ export type BarHorizontalChart = {
   unit: ChartUnit;
 };
 
+export type LineChart = {
+  type: 'line';
+  title: string;
+  points: Array<{ t: string; v: number }>;
+  unit: ChartUnit;
+};
+
 export type EmptyChart = {
   type: 'empty';
   title: string;
   message: string;
 };
 
-export type ChartPayload = BarHorizontalChart | EmptyChart;
+export type ChartPayload = BarHorizontalChart | LineChart | EmptyChart;
 
 export type AskStatus = 'ok' | 'out_of_scope' | 'empty' | 'unavailable_reason';
 

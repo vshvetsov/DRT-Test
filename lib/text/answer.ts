@@ -1,6 +1,8 @@
 import type {
   RankedProductsArgs,
   RankedProductsRow,
+  SalesOverTimeArgs,
+  SalesOverTimeRow,
   ToolResult,
 } from '@/lib/tools';
 
@@ -21,13 +23,20 @@ function formatCount(v: number): string {
   return v.toLocaleString('en-US');
 }
 
-function describeRange(args: RankedProductsArgs): string {
-  if (args.date_from && args.date_to)
-    return ` from ${args.date_from} through ${args.date_to}`;
-  if (args.date_from) return ` from ${args.date_from}`;
-  if (args.date_to) return ` through ${args.date_to}`;
+function describeOptionalRange(
+  date_from?: string,
+  date_to?: string,
+): string {
+  if (date_from && date_to)
+    return ` from ${date_from} through ${date_to}`;
+  if (date_from) return ` from ${date_from}`;
+  if (date_to) return ` through ${date_to}`;
   return '';
 }
+
+// ---------------------------------------------------------------------------
+// Ranked products (top / bottom share this).
+// ---------------------------------------------------------------------------
 
 function answerForRankedProducts(
   rows: RankedProductsRow[],
@@ -35,7 +44,7 @@ function answerForRankedProducts(
   direction: 'top' | 'bottom',
 ): string {
   const metric = args.metric === 'revenue' ? 'revenue' : 'units sold';
-  const range = describeRange(args);
+  const range = describeOptionalRange(args.date_from, args.date_to);
   const pivot = rows[0];
   if (!pivot) {
     // Defensive: caller should emit `status: 'empty'` before reaching here.
@@ -49,8 +58,33 @@ function answerForRankedProducts(
 }
 
 // ---------------------------------------------------------------------------
-// answerForResult — the single entry point. Discriminates on toolName so any
-// future tool must add a branch or the TypeScript never-check fails.
+// sales_over_time — short factual one-liner naming the peak bucket.
+// ---------------------------------------------------------------------------
+
+function answerForSalesOverTime(
+  rows: SalesOverTimeRow[],
+  args: SalesOverTimeArgs,
+): string {
+  const metric = args.metric === 'revenue' ? 'revenue' : 'units sold';
+  if (rows.length === 0) {
+    return `No sales from ${args.date_from} through ${args.date_to}.`;
+  }
+  const fmt = args.metric === 'revenue' ? formatUsd : formatCount;
+  // Compute the peak bucket from the payload — the LLM never picks numbers.
+  let peak = rows[0]!;
+  let peakValue = args.metric === 'revenue' ? peak.revenue : peak.units;
+  for (const r of rows) {
+    const v = args.metric === 'revenue' ? r.revenue : r.units;
+    if (v > peakValue) {
+      peak = r;
+      peakValue = v;
+    }
+  }
+  return `Your ${metric} from ${args.date_from} through ${args.date_to}, bucketed by ${args.bucket}. Peak ${args.bucket}: ${peak.bucket_start} at ${fmt(peakValue)}.`;
+}
+
+// ---------------------------------------------------------------------------
+// answerForResult — the single entry point.
 // ---------------------------------------------------------------------------
 
 export function answerForResult(result: ToolResult): string {
@@ -59,6 +93,8 @@ export function answerForResult(result: ToolResult): string {
       return answerForRankedProducts(result.rows, result.args, 'top');
     case 'bottom_products':
       return answerForRankedProducts(result.rows, result.args, 'bottom');
+    case 'sales_over_time':
+      return answerForSalesOverTime(result.rows, result.args);
     default: {
       const _exhaustive: never = result;
       void _exhaustive;

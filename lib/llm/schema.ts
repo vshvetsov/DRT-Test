@@ -1,12 +1,15 @@
 import type Anthropic from '@anthropic-ai/sdk';
 
-// JSON Schema sent to Anthropic for tool-use. Mirrored from the shared Zod
-// schema in lib/tools/ranked-products.ts; Zod remains the runtime source of
-// truth for argument validation after the model selects a tool.
+// JSON Schema sent to Anthropic for tool-use. Mirrored from the Zod schemas
+// under lib/tools/*; Zod remains the runtime source of truth for argument
+// validation after the model selects a tool.
 
 type Tool = Anthropic.Messages.Tool;
 
-// Both ranked-product tools take the same inputs; the description differs.
+// ---------------------------------------------------------------------------
+// Shared input_schema for the ranked-product tools.
+// ---------------------------------------------------------------------------
+
 const RANKED_PRODUCTS_INPUT_SCHEMA: Tool['input_schema'] = {
   type: 'object',
   properties: {
@@ -53,6 +56,46 @@ export const BOTTOM_PRODUCTS_TOOL: Tool = {
   input_schema: RANKED_PRODUCTS_INPUT_SCHEMA,
 };
 
+// ---------------------------------------------------------------------------
+// sales_over_time — time-series. Required dates and bucket. No limit.
+// ---------------------------------------------------------------------------
+
+export const SALES_OVER_TIME_TOOL: Tool = {
+  name: 'sales_over_time',
+  description:
+    "Compute the current vendor's revenue or units sold as a time series over a required date range, bucketed by day, week, or month. Use this for questions about CHANGE OVER TIME (for example \"sales trend over the last 30 days\", \"revenue per week this quarter\", \"how have my units sold moved this month\"). Never use this for ranking individual products; use top_products or bottom_products for that.",
+  input_schema: {
+    type: 'object',
+    properties: {
+      metric: {
+        type: 'string',
+        enum: ['revenue', 'units'],
+        description:
+          'Whether to plot revenue (USD) or units sold (item count).',
+      },
+      date_from: {
+        type: 'string',
+        pattern: '^\\d{4}-\\d{2}-\\d{2}$',
+        description:
+          'Inclusive start date in YYYY-MM-DD (UTC). ALWAYS supply this, computed relative to today.',
+      },
+      date_to: {
+        type: 'string',
+        pattern: '^\\d{4}-\\d{2}-\\d{2}$',
+        description:
+          'Inclusive end date in YYYY-MM-DD (UTC). ALWAYS supply this, computed relative to today.',
+      },
+      bucket: {
+        type: 'string',
+        enum: ['day', 'week', 'month'],
+        description:
+          'Time bucket granularity. Pick day for ranges up to ~45 days, week for ranges up to ~200 days, month for longer ranges.',
+      },
+    },
+    required: ['metric', 'date_from', 'date_to', 'bucket'],
+  },
+};
+
 export const REFUSE_TOOL: Tool = {
   name: 'refuse',
   description:
@@ -74,5 +117,6 @@ export const REFUSE_TOOL: Tool = {
 export const TOOL_DEFS: Tool[] = [
   TOP_PRODUCTS_TOOL,
   BOTTOM_PRODUCTS_TOOL,
+  SALES_OVER_TIME_TOOL,
   REFUSE_TOOL,
 ];

@@ -1,17 +1,18 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { env } from '@/lib/env';
 import { bottomProducts } from '@/lib/tools/bottom-products';
+import { salesOverTime } from '@/lib/tools/sales-over-time';
 import { topProducts } from '@/lib/tools/top-products';
-import type { RankedProductsArgs } from '@/lib/tools/ranked-products';
+import type { ToolSelectionInput } from '@/lib/tools';
 import { TOOL_DEFS } from './schema';
 import { systemPrompt } from './system-prompt';
 
+// ToolSelection is the LLM layer's output. The tool branch reuses
+// ToolSelectionInput directly so each toolName stays correlated with its own
+// args type — adding a new tool only requires updating ToolSelectionInput in
+// lib/tools/index.ts and the parsing branch below.
 export type ToolSelection =
-  | {
-      kind: 'tool';
-      toolName: 'top_products' | 'bottom_products';
-      args: RankedProductsArgs;
-    }
+  | ({ kind: 'tool' } & ToolSelectionInput)
   | { kind: 'refuse'; reason: 'out_of_scope' | 'unavailable_reason' };
 
 const TIMEOUT_MS = 20_000;
@@ -88,6 +89,19 @@ export async function selectTool(
       console.log('[llm] selected tool: bottom_products', parsed.data);
     }
     return { kind: 'tool', toolName: 'bottom_products', args: parsed.data };
+  }
+
+  if (toolUse.name === 'sales_over_time') {
+    const parsed = salesOverTime.argSchema.safeParse(toolUse.input);
+    if (!parsed.success) {
+      return refuseAsOutOfScope(
+        `sales_over_time arg validation failed: ${parsed.error.message}`,
+      );
+    }
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[llm] selected tool: sales_over_time', parsed.data);
+    }
+    return { kind: 'tool', toolName: 'sales_over_time', args: parsed.data };
   }
 
   return refuseAsOutOfScope(`unknown tool name: ${toolUse.name}`);

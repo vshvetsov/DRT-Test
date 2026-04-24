@@ -96,12 +96,13 @@ export async function POST(
   }
 
   // --- 6. Execute the selected tool via the generic dispatcher ------------
+  // Strip the `kind` discriminator to produce a ToolSelectionInput. The
+  // discriminated-union destructure preserves toolName ↔ args correlation so
+  // runTool sees a correctly typed variant.
+  const { kind: _selectionKind, ...toolInput } = selection;
   let result: ToolResult;
   try {
-    result = await runTool(
-      { toolName: selection.toolName, args: selection.args },
-      session.vendorId,
-    );
+    result = await runTool(toolInput, session.vendorId);
   } catch (err) {
     console.error('[api/ask] tool execution failed:', err);
     return errorJson({ error: 'tool_failed' }, 500);
